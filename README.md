@@ -1,5 +1,10 @@
 # Coffee Sales Case Study
 
+![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)
+![SQL](https://img.shields.io/badge/SQL-Server-darkgreen?logo=microsoftsqlserver)
+![GitHub](https://img.shields.io/badge/GitHub-repo-black?logo=github)
+![Last Commit](https://img.shields.io/github/last-commit/wadewolfie999/CoffeeSalesCaseStudy)
+
 This project analyzes point-of-sale transaction data from a chain of coffee shops to demonstrate **end-to-end data science skills**.
 
 ---
