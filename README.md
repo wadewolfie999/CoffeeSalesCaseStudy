@@ -24,7 +24,7 @@ This project analyzes point-of-sale transaction data from a chain of coffee shop
 
 ## 🗂️ Dataset
 
-- **Source:** [Kaggle — Coffee Shop Sales](https://www.kaggle.com/datasets/ahmedabbas/coffee-shop-sales)
+- **Source:** [Kaggle — Coffee Shop Sales](https://www.kaggle.com/datasets/ahmedabbas757/coffee-sales)
 - Contains **transaction-level details**:  
   `transaction_id`, `transaction_date`, `transaction_time`, `transaction_qty`, `store_id`, `store_location`, `product_id`, `unit_price`, `product_category`, `product_type`, `product_detail`.
 
