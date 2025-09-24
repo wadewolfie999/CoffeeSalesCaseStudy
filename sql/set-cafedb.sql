@@ -1,8 +1,8 @@
 CREATE DATABASE CoffeeSalesDB;
-GO
+
 
 USE CoffeeSalesDB;
-go
+
 
 CREATE TABLE Sales (
 transaction_id INT PRIMARY KEY,
@@ -17,6 +17,6 @@ product_category VARCHAR(100),
 product_type VARCHAR(100),
 product_detail VARCHAR(100)
 );
-go
+
 
 
