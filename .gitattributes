@@ -1,0 +1,19 @@
+# Auto-detect text files and normalize line endings
+* text=auto
+
+# Explicitly declare line endings
+*.sh text eol=lf
+*.sql text eol=lf
+*.py  text eol=lf
+*.ipynb text eol=lf
+*.md  text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Binary files (don’t touch line endings)
+*.jpg binary
+*.png binary
+*.gif binary
+*.xlsx binary
+*.zip binary
+*.pkl binary
