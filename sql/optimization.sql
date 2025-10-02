@@ -1,27 +1,20 @@
--- optimization.sql
--- Performance tuning examples
+-- optimization.sql additions (master-level)
+-- 1. Store-level queries (modules 1,4)
+CREATE INDEX idx_store_location ON sales_cleaned(store_location(50));
 
--- 1. Index creation for faster lookups
-CREATE INDEX idx_sales_date ON sales_cleaned(transaction_date);
-CREATE INDEX idx_sales_store ON sales_cleaned(store_location(50));
-CREATE INDEX idx_sales_product ON sales_cleaned(product_id);
+CREATE INDEX idx_store_type ON sales_cleaned(store_location(50), product_type(50));
 
--- 2. Avoid correlated subquery (bad pattern shown, then fixed)
+-- 2. Product-level queries (modules 2,4,8)
+CREATE INDEX idx_product_detail ON sales_cleaned(product_detail(50));
 
--- ❌ Bad:
--- SELECT s.store_location,
---        (SELECT SUM(transaction_qty*unit_price)
---         FROM sales_cleaned WHERE store_location = s.store_location) AS revenue
--- FROM sales_cleaned s;
+CREATE INDEX idx_product_type ON sales_cleaned(product_type(50));
 
--- ✅ Optimized:
-SELECT store_location, SUM(transaction_qty * unit_price) AS revenue
-FROM sales_cleaned
-GROUP BY store_location;
+-- 3. Date-level queries (modules 3,5,6,9)
+CREATE INDEX idx_transaction_date ON sales_cleaned(transaction_date);
 
--- 3. Use EXPLAIN to check query plan
-EXPLAIN
-SELECT product_type, SUM(transaction_qty * unit_price) AS Revenue
-FROM sales_cleaned
-GROUP BY product_type
-ORDER BY Revenue DESC;
+CREATE INDEX idx_product_date ON sales_cleaned(product_id, transaction_date);
+
+-- 4. Join-related queries (module 7)
+CREATE INDEX idx_transaction_id ON sales_cleaned(transaction_id);
+
+CREATE INDEX idx_transaction_product ON sales_cleaned(transaction_id, product_id);

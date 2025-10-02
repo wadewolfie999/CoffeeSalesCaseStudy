@@ -1,6 +1,6 @@
 -- transformations.sql - Master script
 
-SOURCE cleaning.sql;
-SOURCE analysis.sql;
-SOURCE optimization.sql;
+SOURCE C:/Users/vahid/Projects/CoffeeSalesCaseStudy/sql/cleaning.sql;
+SOURCE C:/Users/vahid/Projects/CoffeeSalesCaseStudy/sql/optimization.sql;
+SOURCE C:/Users/vahid/Projects/CoffeeSalesCaseStudy/sql/analysis.sql;
 
