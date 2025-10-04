@@ -1,0 +1,131 @@
+# scripts/phase2_hyperparameter_tuning.py
+import logging
+import json
+import os
+from sklearn.model_selection import GridSearchCV, TimeSeriesSplit
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
+from sklearn.metrics import make_scorer, f1_score
+import config
+from utils import ensure_dir
+
+# === Helpers ===
+def save_best_params(name: str, best_params: dict):
+    ensure_dir(config.PATHS_OPT["models"])
+    out_path = os.path.join(config.PATHS_OPT["models"], f"{name}_best_params.json")
+    with open(out_path, "w") as f:
+        json.dump(best_params, f, indent=2)
+    logging.info(f"[OK] Saved best params for {name}: {out_path}")
+
+
+# === Logistic Regression ===
+def tune_log_reg(X, y):
+    logging.info("[TUNE] Logistic Regression")
+    grid = {
+        "C": [0.01, 0.1, 1, 10],
+        "penalty": ["l1", "l2"],
+        "solver": ["liblinear"]
+    }
+    logreg = LogisticRegression(max_iter=1000)
+    clf = GridSearchCV(logreg, grid, cv=5, scoring="f1", n_jobs=-1)
+    clf.fit(X, y)
+    save_best_params("logistic_regression", clf.best_params_)
+    return clf.best_estimator_
+
+
+# === Random Forest ===
+def tune_rf(X, y):
+    logging.info("[TUNE] Random Forest")
+    grid = {
+        "n_estimators": [100, 200],
+        "max_depth": [5, 10, None],
+        "min_samples_split": [2, 5],
+    }
+    rf = RandomForestClassifier(random_state=42)
+    clf = GridSearchCV(rf, grid, cv=5, scoring="f1", n_jobs=-1)
+    clf.fit(X, y)
+    save_best_params("random_forest", clf.best_params_)
+    return clf.best_estimator_
+
+
+# === XGBoost ===
+def tune_xgb(X, y):
+    logging.info("[TUNE] XGBoost")
+    grid = {
+        "n_estimators": [100, 200],
+        "max_depth": [3, 6, 10],
+        "learning_rate": [0.01, 0.1, 0.2],
+        "subsample": [0.8, 1.0],
+    }
+    xgb = XGBClassifier(use_label_encoder=False, eval_metric="logloss", random_state=42)
+    clf = GridSearchCV(xgb, grid, cv=5, scoring="f1", n_jobs=-1)
+    clf.fit(X, y)
+    save_best_params("xgboost", clf.best_params_)
+    return clf.best_estimator_
+
+
+# === Forecasting (Prophet / ARIMA) ===
+# Note: Forecasting models don't integrate easily with sklearn's GridSearchCV
+# Instead, we use TimeSeriesSplit + manual param grid
+from prophet import Prophet
+import itertools
+import pandas as pd
+
+def tune_prophet(ts_df: pd.DataFrame, param_grid: dict, horizon=30):
+    """
+    ts_df: dataframe with ['ds','y']
+    param_grid: dict of hyperparams to search
+    """
+    logging.info("[TUNE] Prophet")
+    keys, values = zip(*param_grid.items())
+    best_params, best_mape = None, float("inf")
+
+    tscv = TimeSeriesSplit(n_splits=3)
+
+    for combo in itertools.product(*values):
+        params = dict(zip(keys, combo))
+        errors = []
+        for train_idx, test_idx in tscv.split(ts_df):
+            train, test = ts_df.iloc[train_idx], ts_df.iloc[test_idx]
+            model = Prophet(**params)
+            model.fit(train)
+            future = model.make_future_dataframe(periods=len(test), freq="D")
+            forecast = model.predict(future)
+            pred = forecast.tail(len(test))["yhat"].values
+            true = test["y"].values
+            mape = (abs((true - pred) / true).mean()) * 100
+            errors.append(mape)
+        avg_mape = sum(errors) / len(errors)
+        if avg_mape < best_mape:
+            best_mape, best_params = avg_mape, params
+
+    save_best_params("prophet", best_params)
+    logging.info(f"[OK] Best Prophet MAPE: {best_mape:.2f}%")
+    return best_params
+
+from pmdarima.arima import auto_arima
+
+def tune_arima(ts_series, seasonal=True, m=7):
+    """
+    ts_series: pandas Series indexed by datetime
+    seasonal: True for SARIMA
+    m: season length (e.g., 7 for weekly seasonality)
+    """
+    logging.info("[TUNE] ARIMA")
+    model = auto_arima(
+        ts_series,
+        seasonal=seasonal,
+        m=m,
+        stepwise=True,
+        suppress_warnings=True,
+        trace=True
+    )
+    best_order = model.get_params().get("order")
+    best_seasonal_order = model.get_params().get("seasonal_order")
+    save_best_params("arima", {
+        "order": best_order,
+        "seasonal_order": best_seasonal_order
+    })
+    logging.info(f"[OK] Best ARIMA order={best_order}, seasonal_order={best_seasonal_order}")
+    return model
